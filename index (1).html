@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Bomb Game Pro ☠️</title>
+<style>
+body {
+    margin: 0;
+    height: 100vh;
+    overflow: hidden;
+    background: radial-gradient(circle, #200000, #000000);
+    font-family: Arial, sans-serif;
+    color: white;
+}
+
+/* 🔥 Background Lucky Glow */
+.bg-name{
+    position:fixed;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    font-size:120px;
+    font-weight:bold;
+    color:rgba(255,0,0,0.08);
+    text-shadow:0 0 25px red;
+    animation:glow 2s infinite alternate;
+    pointer-events:none;
+    user-select:none;
+}
+
+@keyframes glow{
+    from{ text-shadow:0 0 20px red; }
+    to{ text-shadow:0 0 60px crimson; }
+}
+
+.panel {
+    position: fixed;
+    top: 10px;
+    left: 20px;
+    font-size: 16px;
+    z-index: 10;
+}
+
+input {
+    padding: 5px;
+    margin-bottom: 5px;
+}
+
+button, select {
+    margin: 3px;
+    padding: 5px 10px;
+}
+
+.leaderboard {
+    position: fixed;
+    top: 10px;
+    right: 20px;
+    width: 220px;
+    background: rgba(0,0,0,0.6);
+    padding: 10px;
+    border: 2px solid red;
+    border-radius: 8px;
+}
+
+.leaderboard h3 {
+    margin-top: 0;
+    text-align: center;
+}
+
+.bomb {
+    position: absolute;
+    top: -50px;
+    font-size: 40px;
+    cursor: pointer;
+    animation: fall linear forwards;
+    will-change: transform; /* 🚀 performance boost */
+}
+
+@keyframes fall {
+    0% { transform: translateY(0) rotate(0deg); }
+    100% { transform: translateY(120vh) rotate(1080deg); }
+}
+
+.blast {
+    position: absolute;
+    font-size: 25px;
+    animation: explode 0.6s ease-out forwards;
+}
+
+@keyframes explode {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(6); opacity: 0; }
+}
+
+.shake {
+    animation: shake 0.3s;
+}
+
+@keyframes shake {
+    0% { transform: translate(0,0); }
+    25% { transform: translate(-5px,5px); }
+    50% { transform: translate(5px,-5px); }
+    75% { transform: translate(-5px,-5px); }
+    100% { transform: translate(0,0); }
+}
+</style>
+</head>
+<body>
+
+<!-- 🔥 Lucky Background -->
+<div class="bg-name">Lucky 😎</div>
+
+<div class="panel">
+    👤 Name: <input type="text" id="playerName" placeholder="Enter name"><br>
+
+    ☠️ Time: <span id="time">60</span>s |
+    💥 Score: <span id="score">0</span>
+    <br><br>
+
+    Difficulty:
+    <select id="difficulty">
+        <option value="1200">Easy</option>
+        <option value="800" selected>Medium</option>
+        <option value="500">Hard</option>
+        <option value="300">Insane</option>
+    </select>
+
+    <button onclick="startGame()">Start</button>
+    <button onclick="stopGame()">Stop</button>
+    <button onclick="restartGame()">Restart</button>
+</div>
+
+<div class="leaderboard">
+    <h3>☠️ Leaderboard</h3>
+    <ul id="leaderList"></ul>
+</div>
+
+<script>
+
+let score = 0;
+let timeLeft = 60;
+let gameActive = false;
+let bombInterval;
+let timer;
+
+function createBomb() {
+    if (!gameActive) return;
+
+    const bomb = document.createElement("div");
+    bomb.className = "bomb";
+    bomb.innerText = "💣";
+    bomb.style.left = Math.random() * 95 + "%";
+
+    let duration = 2 + Math.random() * 2;
+    bomb.style.animationDuration = duration + "s";
+
+    document.body.appendChild(bomb);
+
+    /* ⚡ INSTANT REACTION */
+    bomb.addEventListener("pointerdown", function(e) {
+        if (!gameActive) return;
+
+        score++;
+        document.getElementById("score").innerText = score;
+
+        const blast = document.createElement("div");
+        blast.className = "blast";
+        blast.innerText = "🔥💥🔥";
+        blast.style.left = e.pageX - 20 + "px";
+        blast.style.top = e.pageY - 20 + "px";
+        document.body.appendChild(blast);
+
+        document.body.classList.add("shake");
+        setTimeout(() => document.body.classList.remove("shake"), 200);
+
+        bomb.remove();
+        setTimeout(() => blast.remove(), 600);
+    });
+
+    setTimeout(() => bomb.remove(), duration * 1000);
+}
+
+function startGame() {
+    const name = document.getElementById("playerName").value.trim();
+    if (name === "") {
+        alert("Enter your name first 😤");
+        return;
+    }
+
+    if (gameActive) return;
+    gameActive = true;
+
+    let spawnSpeed = document.getElementById("difficulty").value;
+    bombInterval = setInterval(createBomb, spawnSpeed);
+
+    timer = setInterval(() => {
+        timeLeft--;
+        document.getElementById("time").innerText = timeLeft;
+
+        if (timeLeft <= 0) {
+            stopGame();
+            saveScore(name, score);
+            alert("☠️ Time Up! " + name + " Score: " + score);
+        }
+    }, 1000);
+}
+
+function stopGame() {
+    gameActive = false;
+    clearInterval(bombInterval);
+    clearInterval(timer);
+}
+
+function restartGame() {
+    stopGame();
+    score = 0;
+    timeLeft = 60;
+    document.getElementById("score").innerText = 0;
+    document.getElementById("time").innerText = 60;
+    document.getElementById("playerName").value = "";
+    document.querySelectorAll(".bomb").forEach(b => b.remove());
+}
+
+/* Leaderboard */
+function saveScore(name, newScore) {
+    let scores = JSON.parse(localStorage.getItem("leaderboard")) || [];
+    scores.push({name: name, score: newScore});
+    scores.sort((a,b) => b.score - a.score);
+    scores = scores.slice(0,5);
+    localStorage.setItem("leaderboard", JSON.stringify(scores));
+    displayLeaderboard();
+}
+
+function displayLeaderboard() {
+    let scores = JSON.parse(localStorage.getItem("leaderboard")) || [];
+    let list = document.getElementById("leaderList");
+    list.innerHTML = "";
+    scores.forEach((player) => {
+        let li = document.createElement("li");
+        li.innerText = "☠️ " + player.name + " - " + player.score;
+        list.appendChild(li);
+    });
+}
+
+displayLeaderboard();
+
+</script>
+
+</body>
+</html>
